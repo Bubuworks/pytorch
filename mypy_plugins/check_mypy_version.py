@@ -5,19 +5,21 @@ from pathlib import Path
 from mypy.plugin import Plugin
 
 
-def get_correct_mypy_version():
-    # there's probably a more elegant way to do this
-    (match,) = re.finditer(
-        r"mypy==(\d+(?:\.\d+)*)",
-        (
-            Path(__file__).parent.parent / ".ci" / "docker" / "requirements-ci.txt"
-        ).read_text(),
-    )
+def get_correct_mypy_version() -> str:
+    """Return the mypy version required by the PyTorch repo."""
+    requirements_file = Path(__file__).parent.parent / ".ci" / "docker" / "requirements-ci.txt"
+    if not requirements_file.is_file():
+        raise FileNotFoundError(f"Requirements file not found: {requirements_file}")
+
+    text = requirements_file.read_text(encoding="utf-8")
+    match = re.search(r"mypy==(\d+(?:\.\d+)*)", text)
+    if not match:
+        raise ValueError(f"Could not find mypy version in {requirements_file}")
     (version,) = match.groups()
     return version
 
 
-def plugin(version: str):
+def plugin(version: str) -> type:
     correct_version = get_correct_mypy_version()
     if version != correct_version:
         print(
